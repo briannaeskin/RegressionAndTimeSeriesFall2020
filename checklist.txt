@@ -1,0 +1,21 @@
+Checklist:
+1. Introduction
+2. Data Description
+3. Model creation and rationale
+4. Results analysis
+5. Conclusions
+
+Stuff for Item 3
+1. Model Diagnostics
+- Leverage/Outliers/Influentials
+- Error Assumptions (Constant Variance, Normality, Correlated Errors)
+- Partial Regression
+- Collinearity
+2. Transformations
+- Box-Cox
+- Broken Stick
+- Polynomials
+3. Model Selection
+-Backwards/Forwards/BIC/AIC Comparison
+4. Model Stability
+- Split data into Test and Train
