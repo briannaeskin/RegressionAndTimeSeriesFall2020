@@ -23,14 +23,15 @@ halfnorm(cook,3,labs=counties,ylab="Cook's Distance")
 lmod_clinton_2 <- lm(VotingPct ~ MedAge + Savings + PerCapIncome + Poverty + Veterans + Female + PopDensity + NursingHome + Crime, clinton, subset=(cook < max(cook)))
 summary(lmod_clinton_2)
 summary(lmod_clinton)
-clinton_filtered <- clinton[-1602,]
 
 
 #split to test and train data
 sample_size <- floor(0.8*nrow(clinton))
-set.seed(777)
+set.seed(001)
 
 data_sample <- sample(seq_len(nrow(clinton)),size=sample_size)
 train_clinton <- clinton[data_sample,]
 test_clinton <- clinton[-data_sample,]
+
+#Variance Inflation Factor
 
