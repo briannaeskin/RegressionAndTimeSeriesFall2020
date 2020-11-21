@@ -1,6 +1,7 @@
 install.packages("lmtest")
 library("lmtest")
 library("faraway")
+library("MASS")
 
 #read data
 clinton <- read.csv("https://raw.githubusercontent.com/briannaeskin/RegressionAndTimeSeriesFall2020/main/ClintonElectionData1992.csv", header = TRUE, row.names = 1)
@@ -55,3 +56,6 @@ shapiro.test(residuals(lmod_clinton))
 
 #Correlated Errors
 dwtest(lmod_clinton)
+
+#Box-Cox
+boxcox(lmod_clinton,plotit=F,lambda=seq(0.5,1.0,by=0.05))
