@@ -1,3 +1,5 @@
+install.packages("lmtest")
+library("lmtest")
 library("faraway")
 
 #read data
@@ -35,7 +37,21 @@ test_clinton <- clinton[-data_sample,]
 
 lmod_clinton <- lm(VotingPct ~ MedAge + Savings + PerCapIncome + Poverty + Veterans + Female + PopDensity + NursingHome + Crime, train_clinton)
 
+
 #Variance Inflation Factor
 x <- model.matrix(lmod_clinton)[,-1]
 vif(x)
 
+#Error Assumptions
+#Constant Variance
+plot(fitted(lmod_clinton), residuals(lmod_clinton), xlab="Fitted", ylab="Residuals")
+abline(h=0)
+plot(fitted(lmod_clinton),sqrt(abs(residuals(lmod_clinton))),xlab="Fitted",ylab=expression(sqrt(hat(epsilon))))
+
+#Normality
+qqnorm(residuals(lmod_clinton),ylab="Residuals",main="")
+qqline(residuals(lmod_clinton))
+shapiro.test(residuals(lmod_clinton))
+
+#Correlated Errors
+dwtest(lmod_clinton)
