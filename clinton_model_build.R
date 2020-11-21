@@ -3,12 +3,27 @@ library("faraway")
 #read data
 clinton <- read.csv("https://raw.githubusercontent.com/briannaeskin/RegressionAndTimeSeriesFall2020/main/ClintonElectionData1992.csv", header = TRUE, row.names = 1)
 
+
 #Leverage/Outliers/Influential (Full Data)
 #Leverage
 lmod_clinton <- lm(VotingPct ~ MedAge + Savings + PerCapIncome + Poverty + Veterans + Female + PopDensity + NursingHome + Crime, clinton)
 hatv <- hatvalues(lmod_clinton)
 counties <- row.names(clinton)
 halfnorm(hatv, labs=counties,ylab="Leverages")
+#Outliers
+stud <- rstudent(lmod_clinton)
+jackres <- stud*(2693/(2694-stud^2))^0.5
+head(sort(abs(jackres),decreasing=T))
+qt(0.05/2704,2693)
+#Influential Points
+cook <- cooks.distance(lmod_clinton)
+head(sort(abs(cook),decreasing=T))
+halfnorm(cook,3,labs=counties,ylab="Cook's Distance")
+
+lmod_clinton_2 <- lm(VotingPct ~ MedAge + Savings + PerCapIncome + Poverty + Veterans + Female + PopDensity + NursingHome + Crime, clinton, subset=(cook < max(cook)))
+summary(lmod_clinton_2)
+summary(lmod_clinton)
+clinton_filtered <- clinton[-1602,]
 
 
 #split to test and train data
