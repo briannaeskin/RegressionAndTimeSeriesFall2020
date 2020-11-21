@@ -33,5 +33,9 @@ data_sample <- sample(seq_len(nrow(clinton)),size=sample_size)
 train_clinton <- clinton[data_sample,]
 test_clinton <- clinton[-data_sample,]
 
+lmod_clinton <- lm(VotingPct ~ MedAge + Savings + PerCapIncome + Poverty + Veterans + Female + PopDensity + NursingHome + Crime, train_clinton)
+
 #Variance Inflation Factor
+x <- model.matrix(lmod_clinton)[,-1]
+vif(x)
 
