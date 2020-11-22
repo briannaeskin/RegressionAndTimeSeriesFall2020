@@ -36,8 +36,8 @@ data_sample <- sample(seq_len(nrow(clinton)),size=sample_size)
 train_clinton <- clinton[data_sample,]
 test_clinton <- clinton[-data_sample,]
 
-lmod_clinton <- lm(VotingPct ~ MedAge + Savings + PerCapIncome + Poverty + Veterans + Female + PopDensity + NursingHome + Crime, train_clinton)
-
+lmod_clinton <- lm(VotingPct^0.75 ~ MedAge + Savings + PerCapIncome + Poverty + Veterans + Female + PopDensity + NursingHome + Crime, train_clinton)
+summary(lmod_clinton)
 
 #Variance Inflation Factor
 x <- model.matrix(lmod_clinton)[,-1]
@@ -58,4 +58,10 @@ shapiro.test(residuals(lmod_clinton))
 dwtest(lmod_clinton)
 
 #Box-Cox
-boxcox(lmod_clinton,plotit=F,lambda=seq(0.5,1.0,by=0.05))
+boxcox(lmod_clinton,plotit=T,lambda=seq(0.5,1.5,by=0.1))
+
+
+#Partial Regression Plots
+d <- residuals(lm(VotingPct ~ Savings + PerCapIncome + Poverty + Veterans + Female + PopDensity + NursingHome + Crime, train_clinton))
+m <- residuals(lm(MedAge ~ Savings + PerCapIncome + Poverty + Veterans + Female + PopDensity + NursingHome + Crime, train_clinton))
+plot(m,d,xlab="Median Age residuals",ylab="VotingPct Residuals")
