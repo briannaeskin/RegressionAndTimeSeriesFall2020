@@ -77,9 +77,6 @@ plot(tail(residuals(lmod_clinton),n-1) ~ head(residuals(lmod_clinton),n-1),
 abline(h=0,v=0,col=grey(0.75))
 dwtest(lmod_clinton)
 
-#Box-Cox
-boxcox(lmod_clinton,plotit=T,lambda=seq(0.5,1.5,by=0.05))
-
 #Check Without Hudson
 lmod_clinton_0.75_2 <- lm(VotingPct^0.75 ~ Savings + Poverty + Veterans + Female + PopDensity, clinton, subset=(cook < max(cook)))
 summary(lmod_clinton_0.75_2)
@@ -88,13 +85,33 @@ summary(lmod_clinton_0.75)
 #Check Partial Residual Plots
 #With
 d <- residuals(lm(VotingPct^0.75 ~ Savings + Poverty + Veterans + Female, clinton))
-m <- residuals(lm(PopDensity ~ MedAge + Savings + PerCapIncome + Poverty + Veterans + Female + NursingHome + Crime, clinton))
+m <- residuals(lm(PopDensity ~ MedAge + Savings + PerCapIncome + Poverty + Veterans + Female, clinton))
 plot(m,d,xlab="PopDensity residuals With Hudson",ylab="VotingPct^0.75 Residuals")
-abline(0,coef(lmod_clinton_0.75_2)['PopDensity'])
+abline(0,coef(lmod_clinton_0.75)['PopDensity'])
 head(sort(abs(m),decreasing=T))
 #Without
 d <- residuals(lm(VotingPct^0.75 ~ Savings + Poverty + Veterans + Female, clinton,subset=(cook < max(cook))))
-m <- residuals(lm(PopDensity ~ MedAge + Savings + PerCapIncome + Poverty + Veterans + Female + NursingHome + Crime, clinton, subset=(cook < max(cook))))
+m <- residuals(lm(PopDensity ~ MedAge + Savings + PerCapIncome + Poverty + Veterans + Female, clinton, subset=(cook < max(cook))))
 plot(m,d,xlab="PopDensity residuals Without Hudson",ylab="VotingPct^0.75 Residuals")
 abline(0,coef(lmod_clinton_0.75_2)['PopDensity'])
 head(sort(abs(m),decreasing=T))
+
+#Check Without New Castle
+lmod_clinton_0.75_2 <- lm(VotingPct^0.75 ~ Savings + Poverty + Veterans + Female + PopDensity, clinton, subset=(cook > 0.16 | cook < 0.1))
+summary(lmod_clinton_0.75_2)
+summary(lmod_clinton_0.75)
+
+#Check Partial Residual Plots
+#With
+d <- residuals(lm(VotingPct^0.75 ~ Poverty + Veterans + Female + PopDensity, clinton))
+m <- residuals(lm(Savings ~ Poverty + Veterans + Female + PopDensity, clinton))
+plot(m,d,xlab="Savings residuals With NewCastle",ylab="VotingPct^0.75 Residuals")
+abline(0,coef(lmod_clinton_0.75)['Savings'])
+head(sort(abs(m),decreasing=T))
+#Without
+d <- residuals(lm(VotingPct^0.75 ~ Poverty + Veterans + Female + PopDensity, clinton, subset=(cook > 0.16 | cook < 0.1)))
+m <- residuals(lm(Savings ~ Poverty + Veterans + Female + PopDensity, clinton, subset=(cook > 0.16 | cook < 0.1)))
+plot(m,d,xlab="Savings residuals Without New Castle",ylab="VotingPct^0.75 Residuals")
+abline(0,coef(lmod_clinton_0.75_2)['Savings'])
+head(sort(abs(m),decreasing=T))
+
