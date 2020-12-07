@@ -14,6 +14,7 @@ library("lmtest")
 library("MASS")
 library("tidyverse")
 knitr::opts_chunk$set(echo = TRUE)
+options(scipen=999)
 
 #Read in data from csv
 clinton <- read.csv("https://raw.githubusercontent.com/briannaeskin/RegressionAndTimeSeriesFall2020/main/ClintonElectionData1992.csv", header = TRUE, row.names = 1, stringsAsFactors = FALSE)
@@ -49,13 +50,15 @@ lmod_clinton_train <- lm(VotingPct ~ Savings + Poverty + Veterans + Female + Pop
 
 |    Descriptive statistics for each variable can be found in Table 1. While visually observing the variables, we noticed some outliers in the predictors. We will wait to action on these until it is concluded that they are influential points during the model analysis. A histogram of the response variable, VotingPct, can be found in Figure 1, confirming an initial assumption that the response variable is normally distributed.
 |    As seen in Table 2, the VIFs for each predictor are reasonable, implying little correlation between the predictors. The largest VIFs, for PerCapIncome and Poverty, were still less than 3 and the average VIF is around 1.69. As a result, we kept all of the predictors in the model for the time being. As seen in Figure 2, the residuals versus fitted values plot shows constant variance in the model, but the residuals are not normally distributed, with a long tail in the negative direction, and a calculated p-value from the Shapiro-Wilk normality test of 7.242e-05. When using the Box-Cox Method to find a potential transformation, the suggested transformation is $\lambda=0.75$. However, after analyzing the residuals with lambdas in that range ($\lambda=1,0.75,0.5$), there is little to no improvement in the distribution of the residuals, so no transformation was done. When checking for potential outliers and influential points, there was one county, Kings NY, whose jackknife residual of 6.84 was larger than the Bonferroni Correction value of 4.13, and whose Cook's Distance of 4.317 was extremely large compared to the rest of the counties (< 0.15). So we removed this county from the model and repeated the residual analysis with a new model fit.
-|    The updated residual analyses after removing the influential county can be found in Figure 3. The residuals versus fitted values remained relatively unchanged, but the distribution of the residuals now resembles a normal distribution. Similarly, the new Box-Cox test still suggests a $\lambda$ of 0.75, so there is no reason to transform the data. Backwards model selection using BIC gives that 5 predictors should be used in the model: Savings, Poverty, Veterans, Female, and PopDensity (Figure 4). After a final sanity check of the residuals (Figure 5), the finalized model can be summarized in Table 3.
-|    When comparing the RMSE of the train and test data, the values are comparable - 8.20 and 8.58, respectively. The plot of the observed versus fitted test values, with the corresponding prediction intervals, can be found on Figure 6. The model sensitivity test was insignificant, with $\chi^2=8.0346$ and p-value of 0.3295, suggesting the model is useful for new data (Table 4).
+|    The updated residual analyses after removing the influential county can be found in Figure 3. The residuals versus fitted values remained relatively unchanged, but the distribution of the residuals now resembles a normal distribution. Similarly, the new Box-Cox test still suggests a $\lambda$ of 0.75, so there is no reason to transform the data. Backwards model selection using BIC gives that 5 predictors should be used in the model: Poverty, PopDensity, Female, Savings, Veterans (Figure 4). After a final sanity check of the residuals (Figure 5), the finalized model can be summarized in Table 3.
+|    When comparing the RMSE of the train and test data, the values are comparable at 8.20 and 8.58, respectively. The plot of the observed versus fitted test values, with the corresponding prediction intervals, can be found in Figure 6. The model sensitivity test was insignificant, with $\chi^2=8.0346$ and p-value of 0.3295, suggesting the model is useful for new data (Table 4).
 
 
 **V: Conclusion**
 
-|    After analyzing the data, we were able to create a model that explained 33.27% of the variability in the percentage of the population of a given county that voted for Bill Clinton based on 5 key variables: the average savings per person in the county, the percentage of people living in poverty, the percentage of veterans, the percentage of females, and the population density. However, because the model explains only ~1/3 of the variability, it does lead to some predicting discrepancies, especially in the extreme values. In its current form, out model overestimates counties that overwhelmingly didn't vote for Clinton and underestimates the counties that overwhelmingly did vote for Clinton. This model is very narrow in scope and makes large conclusions about the way a group of people would vote based on broad characteristics. To improve this model, we can consider other demographics, such as religious affiliation, education levels, and race/ethnicity. Another thing to keep in mind is that because this model estimates the voting percentage in a county, population is not taken into account. When trying to estimate the vote share across the state or country, county population needs to be multiplied by the predicted vote share (even though a county may vote 95% for Clinton, if it is the smallest county in a large state like California, it won't contribute much to the overall vote count). In the future, we can also further test the model stability and accuracy by applying the same model to more recent elections.
+|    After analyzing the data, we were able to create a model that explained 33.27% of the variability in the percentage of the population of a given county that voted for Bill Clinton based on 5 key variables: the average savings per person in the county, the percentage of people living in poverty, the percentage of veterans, the percentage of females, and the population density. However, because the model explains only ~1/3 of the variability, it does lead to some predicting discrepancies, especially in the extreme values. In its current form, our model overestimates in counties that overwhelmingly didn't vote for Clinton and underestimates in counties that overwhelmingly did vote for Clinton. This model is very narrow in scope and makes large conclusions about the way a group of people would vote based on broad characteristics. To improve this model, we can consider other demographics, such as religious affiliation, education levels, and race/ethnicity. Another thing to keep in mind is that because this model estimates the voting percentage in a county, population is not taken into account. When trying to estimate the vote share across the state or country, county population needs to be multiplied by the predicted vote share (even though a county may vote 95% for Clinton, if it is the smallest county in a large state like California, it won't contribute much to the overall vote count). In the future, we can also further test the model stability and accuracy by applying the same model to more recent elections.
+
+\newpage
 
 **References**
 
@@ -65,27 +68,39 @@ lmod_clinton_train <- lm(VotingPct ~ Savings + Poverty + Veterans + Female + Pop
 
 3. Winner, Larry. http://users.stat.ufl.edu/~winner/data/clinton1.txt
 
+\newpage
+
 ```{r table1, echo=FALSE}
 clinton_mean <- sapply(clinton, mean)
 clinton_min <- sapply(clinton, min)
 clinton_max <- sapply(clinton, max)
-clinton_var <- sapply(clinton, var)
-clinton_descrip <- data.frame(Variable=colnames(clinton),Mean=clinton_mean,Variance=clinton_var,Min=clinton_min,Max=clinton_max)
-kable(clinton_descrip,"latex", caption="Descriptive Statistics for Predictors and Response") %>%
+clinton_var <- sapply(clinton, var) %>%
+  round(digits=2)
+clinton_descrip <- data.frame(Mean=clinton_mean,Variance=clinton_var,Min=clinton_min,Max=clinton_max)
+kable(clinton_descrip,"latex", caption="Descriptive Statistics for Predictors and Response", digits=2) %>%
   kable_styling(latex_options = "HOLD_position")
 ```
+
+\newpage
 
 ```{r table2, echo=FALSE}
 x <- model.matrix(lmod_clinton_inital)[,-1]
-vif(x) %>%
-  data.frame() %>%
-  kable("latex", caption="Variance Inflation Factor (VIF) for Full Model") %>%
+vif <- vif(x)
+vif_table <- data.frame(VIF=vif)
+kable(vif_table, "latex", caption="Variance Inflation Factor (VIF) for Full Model") %>%
   kable_styling(latex_options = "HOLD_position")
 ```
 
+\newpage
+
 ```{r table3, echo=FALSE}
-summary(lmod_clinton_BIC)
+BIC_table <- data.frame(Estimate=summary(lmod_clinton_BIC)$coefficients[,1],StdError=summary(lmod_clinton_BIC)$coefficients[,2],tvalue=summary(lmod_clinton_BIC)$coefficients[,3],pvalue=c("< 0.001","< 0.001","< 0.001","< 0.001", "< 0.001","< 0.001"))
+kable(BIC_table, "latex", caption="Final Model Using BIC Selection", digits=3) %>%
+  kable_styling(latex_options = "HOLD_position")
 ```
+**Multiple R-Squared: 0.334, Adjusted R-Squared: 0.3327**
+
+\newpage
 
 ```{r table4,echo=FALSE}
 sensitivity <- data.frame(Range=c("< 30", "30-35","35-40","40-45","45-50","50-55","55-60","> 60"),Observed=c(16,132,255,160,80,20,10,3),Expected=c(10,127,257,175,72,21,8,6))
@@ -93,6 +108,8 @@ kable(sensitivity,"latex",caption="Model Sensitivity Analysis") %>%
   kable_styling(latex_options = "HOLD_position")
 ```
 **$\chi^2=8.0346, p=0.3295$**
+
+\newpage
 
 ```{r figure1, echo=FALSE}
 ggplot(data=clinton, mapping=aes(x=VotingPct)) +
@@ -103,8 +120,10 @@ ggplot(data=clinton, mapping=aes(x=VotingPct)) +
   scale_x_continuous(breaks=seq(0,100,10))
 ```
 
+\newpage
 
-```{r figure2, echo=FALSE}
+**Figure 2: Residual Analysis - Full Model and Data**
+```{r figure2, figures-side, fig.show="hold", out.width="50%", echo=FALSE}
 #Error Assumptions
 #Constant Variance
 plot(fitted(lmod_clinton_inital), residuals(lmod_clinton_inital), xlab="Fitted", ylab="Residuals")
@@ -118,7 +137,10 @@ qqline(residuals(lmod_clinton_inital))
 hist(residuals(lmod_clinton_inital),xlab="Residuals",main="Residuals Histogram (Full)")
 ```
 
-```{r figure3, echo=FALSE}
+\newpage
+
+**Figure 3: Residual Analysis - Full Model and Filtered Data**
+```{r figure3, figures-side, fig.show="hold", out.width="50%", echo=FALSE}
 #Error Assumptions
 #Constant Variance
 plot(fitted(lmod_clinton_data_filter), residuals(lmod_clinton_data_filter), xlab="Fitted", ylab="Residuals")
@@ -132,14 +154,19 @@ qqline(residuals(lmod_clinton_data_filter))
 hist(residuals(lmod_clinton_data_filter),xlab="Residuals",main="Residuals Histogram (- Kings NY)")
 ```
 
+\newpage
+
 ```{r figure4, echo=FALSE}
 #BIC Model Selection (Backwards, no transform)
 clinton_back_BIC <- regsubsets(model.matrix(lmod_clinton_data_filter)[,-1],clinton_filtered$VotingPct,method='backward',nvmax=9)
 clinton_back_BIC_summary <- summary(clinton_back_BIC)
-plot(clinton_back_BIC_summary$bic, main='Backward Search: BIC')
+plot(clinton_back_BIC_summary$bic, main='Figure 4: Backward Search- BIC',xlab="# of Predictors",ylab="BIC")
 ```
 
-```{r figure5, echo=FALSE}
+\newpage
+
+**Figure 5: Residual Analysis - BIC Criteria Model and Filtered Data**
+```{r figure5, figures-side, fig.show="hold", out.width="50%", echo=FALSE}
 #Error Assumptions
 #Constant Variance
 plot(fitted(lmod_clinton_BIC), residuals(lmod_clinton_BIC), xlab="Fitted", ylab="Residuals")
@@ -153,6 +180,8 @@ qqline(residuals(lmod_clinton_BIC))
 hist(residuals(lmod_clinton_BIC),xlab="Residuals",main="Residuals Histogram for BIC Model Selection (- Kings NY)")
 ```
 
+\newpage
+
 ```{r figure6, echo=FALSE}
 predict_clinton_test <- predict(lmod_clinton_train, test_clinton, interval="prediction")
 predict_clinton_test <- cbind(predict_clinton_test,test_clinton$VotingPct) %>%
@@ -160,6 +189,9 @@ predict_clinton_test <- cbind(predict_clinton_test,test_clinton$VotingPct) %>%
 ggplot(data=predict_clinton_test,mapping=aes(x=V4,y=fit,ymin=lwr,ymax=upr)) +
   geom_point() +
   geom_abline(intercept=0,slope=1) +
-  geom_ribbon(alpha=0.5)
+  geom_ribbon(alpha=0.5) +
+  ggtitle("Figure 6: Observed versus Fitted with Prediction Intervals, Test Data") +
+  xlab("Observed") +
+  ylab("Predicted")
 ```
 
