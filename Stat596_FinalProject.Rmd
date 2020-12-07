@@ -6,7 +6,25 @@ output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
+library("faraway")
+library("kableExtra")
+library("leaps")
+library("lmtest")
+library("MASS")
+library("tidyverse")
 knitr::opts_chunk$set(echo = TRUE)
+
+#Read in data from csv
+clinton <- read.csv("https://raw.githubusercontent.com/briannaeskin/RegressionAndTimeSeriesFall2020/main/ClintonElectionData1992.csv", header = TRUE, row.names = 1, stringsAsFactors = FALSE)
+clinton_filtered <- clinton[-c(1602),]
+train_clinton <- clinton_filtered[1:2027,]
+test_clinton <- clinton_filtered[2028:2703,]
+
+#Different Models Used in Anlaysis
+lmod_clinton_inital <- lm(VotingPct ~ MedAge + Savings + PerCapIncome + Poverty + Veterans + Female + PopDensity + NursingHome + Crime, clinton)
+lmod_clinton_data_filter <- lm(VotingPct ~ MedAge + Savings + PerCapIncome + Poverty + Veterans + Female + PopDensity + NursingHome + Crime, clinton_filtered)
+lmod_clinton_BIC <- lm(VotingPct ~ Savings + Poverty + Veterans + Female + PopDensity, clinton_filtered)
+lmod_clinton_train <- lm(VotingPct ~ Savings + Poverty + Veterans + Female + PopDensity, train_clinton)
 ```
 
 **I: Introduction**
@@ -22,4 +40,113 @@ knitr::opts_chunk$set(echo = TRUE)
 
 **III: Data Analysis and Model Selection**
 
-|    We applied multiple linear regression techniques on our dataset to identify the minimum number of predictors required to explain the variability in the election results. Using all of the available data points, we first fit all of the predictors to a linear model with no polynomials, and calculated the VIF for each variable to check for potential collinearity between the predictors. Then, we checked the residuals to confirm normality $\epsilon \sim N(0,\sigma^2)$. If the assumption was violated, we checked for potential transformations using the Box-Cox plot. Next, we looked for potential outliers and leverage points and removed points with large leverage by using visual techniques, as well as calculation of the jackknife residuals and Cook's Distance. Once influential points were removed from the model, I repeated all prior analysis to check if the model was severly impacted by the influential points. Then, using BIC as the filtering critera, I performed backwards model selection and selected the number of predictors that generated the minimum BIC. Once the smaller model was generated, I repeated all previous analysis as a way to confirm that any irregularities in the model to this point were not due to unecessary predictors.
+|    I applied multiple linear regression techniques on our dataset to identify the minimum number of predictors required to explain the variability in the election results. Using all of the available data points, I first fit all of the predictors to a linear model with no polynomials, and calculated the VIF for each variable to check for potential collinearity between the predictors. Then, we checked the residuals to confirm normality $\epsilon \sim N(0,\sigma^2)$. If the assumption was violated, I checked for potential transformations using the Box-Cox plot. Next, we looked for potential outliers and leverage points and removed points with large leverage by using visual techniques, as well as calculation of the jackknife residuals and Cook's Distance. Once influential points were removed from the model, I repeated all prior analysis to check if the model was severly impacted by the influential points. Then, using BIC as the filtering critera, I performed backwards model selection and selected the number of predictors that generated the minimum BIC. Once the smaller model was generated, I repeated all previous analysis as a way to confirm that any irregularities in the model to this point were not due to unecessary predictors.
+|    Once the required predictors were identified and any necessary transformations were done, I further tested for model stability by randomly splitting my data into training and test sets using a 3:1 ratio. The split was generated randomly instead of in a block to ensure randomness, since the dataset is sorted by alphabetical order at the state/county level, which is not a time dependent data and is not necessarily the order the data was generated at. I generated a new set of $\beta$ coefficients using the training data against the original model structure. I then used these new coefficients to predict responses for the test data. Once done, I checked for model stability via comparisons of the Root Mean Square Error (RMSE), graphical techniques, and a Chi-Squared test of proportions to confirm that the predicted values were good estimates of the observed values.
+
+
+**IV: Results**
+
+|    Descrpitive statisitcs for each variable can be found in Table 1. While observing the variables, we noticed some outliers in the predictors. We will wait to action on these until it is concluded that they are influential points during the model analysis. A histogram of the Response variable, VotingPct, can be found in Figure 1.
+|    As seen in Table 2, the VIFs for each predictor are reasonable, implying weak correlation between the predictors. The largest VIFs, for PerCapIncome and Poverty, were still less than 3 and the average VIF is around 1.69. As a result, we kept all of the predictors in the model for the time being. As seen in Figure 2, the residuals versus fitted values plot shows constant variance in the model, but the Residuals are not normally distributed, with a long tail in the negative direction, and a calculated p-value from the Shapiro-Wilk normality test of 7.242e-05. When using the Box-Cox Method to find a potential transformation, the suggested transformation is $\lambda=0.75$. However, after analyzing the residuals with lambdas in that range ($\lambda=1,0.75,0.5$), there isn't much improvement in the distribution of the residuals, so no transformation was done. When checking for potential outliers and influential points, there was one county, Kings NY, whose jackknife residual of 6.842478 was larger than the Bonferroni Correction value of 4.132479, and whose Cook's Distance of 4.317 was extremely large compared to the rest of the counties (< 0.15). So I removed this county from the model and rechecked the residuals.
+|    The updated residual analyses can be found in Figure 3. The residuals versus fitted values remained relatively unchanged, but the distribution of the residuals now resembles a normal distribution. Similarly, the new Box-Cox test still suggests a $\lambda$ of 0.75, so there is no reason to transform the data. Backwards model selection using BIC shows 5 predictors should be used in the model: Savings, Poverty, Veterans, Female, and PopDensity (Figure 4). After a final sanity check of the residuals (Figure 5), the finalized model can be summarized in Table 3.
+|    When comparing the RMSE of the train and test data, the values are comparable - 8.20 and 8.58, respectively. The plot of the observed versus fitted test values, with the corresponding prediction intervals, can be found on Figure 6. The model sensitivity test was insignificant, with $\chi^2=8.0346$ and p-value of 0.3295, suggesting the model is useful for new data (Table 4).
+
+
+```{r table1, echo=FALSE}
+clinton_mean <- sapply(clinton, mean)
+clinton_min <- sapply(clinton, min)
+clinton_max <- sapply(clinton, max)
+clinton_var <- sapply(clinton, var)
+clinton_descrip <- data.frame(Variable=colnames(clinton),Mean=clinton_mean,Variance=clinton_var,Min=clinton_min,Max=clinton_max)
+kable(clinton_descrip,"latex", caption="Descriptive Statistics for Predictors and Response") %>%
+  kable_styling(latex_options = "HOLD_position")
+```
+
+```{r table2, echo=FALSE}
+x <- model.matrix(lmod_clinton_inital)[,-1]
+vif(x) %>%
+  data.frame() %>%
+  kable("latex", caption="Variance Inflation Factor (VIF) for Full Model") %>%
+  kable_styling(latex_options = "HOLD_position")
+```
+
+```{r table3, echo=FALSE}
+summary(lmod_clinton_BIC)
+```
+
+```{r table4,echo=FALSE}
+sensitivity <- data.frame(Range=c("< 30", "30-35","35-40","40-45","45-50","50-55","55-60","> 60"),Observed=c(16,132,255,160,80,20,10,3),Expected=c(10,127,257,175,72,21,8,6))
+kable(sensitivity,"latex",caption="Model Sensitivity Analysis") %>%
+  kable_styling(latex_options = "HOLD_position")
+```
+**$\chi^2=8.0346, p=0.3295$**
+
+```{r figure1, echo=FALSE}
+ggplot(data=clinton, mapping=aes(x=VotingPct)) +
+  geom_histogram(binwidth=5, fill="black",color="grey") +
+  ggtitle("Figure 1: Histogram of Voting % for Clinton by County - 1992") +
+  xlab("Voting %") +
+  ylab("Count") +
+  scale_x_continuous(breaks=seq(0,100,10))
+```
+
+
+```{r figure2, echo=FALSE}
+#Error Assumptions
+#Constant Variance
+plot(fitted(lmod_clinton_inital), residuals(lmod_clinton_inital), xlab="Fitted", ylab="Residuals")
+abline(h=0)
+
+#QQ Plot
+qqnorm(residuals(lmod_clinton_inital),main="")
+qqline(residuals(lmod_clinton_inital))
+
+#Histogram of Residuals
+hist(residuals(lmod_clinton_inital),xlab="Residuals",main="Residuals Histogram (Full)")
+```
+
+```{r figure3, echo=FALSE}
+#Error Assumptions
+#Constant Variance
+plot(fitted(lmod_clinton_data_filter), residuals(lmod_clinton_data_filter), xlab="Fitted", ylab="Residuals")
+abline(h=0)
+
+#QQ Plot
+qqnorm(residuals(lmod_clinton_data_filter),main="")
+qqline(residuals(lmod_clinton_data_filter))
+
+#Histogram of Residuals
+hist(residuals(lmod_clinton_data_filter),xlab="Residuals",main="Residuals Histogram (- Kings NY)")
+```
+
+```{r figure4, echo=FALSE}
+#BIC Model Selection (Backwards, no transform)
+clinton_back_BIC <- regsubsets(model.matrix(lmod_clinton_data_filter)[,-1],clinton_filtered$VotingPct,method='backward',nvmax=9)
+clinton_back_BIC_summary <- summary(clinton_back_BIC)
+plot(clinton_back_BIC_summary$bic, main='Backward Search: BIC')
+```
+
+```{r figure5, echo=FALSE}
+#Error Assumptions
+#Constant Variance
+plot(fitted(lmod_clinton_BIC), residuals(lmod_clinton_BIC), xlab="Fitted", ylab="Residuals")
+abline(h=0)
+
+#QQ Plot
+qqnorm(residuals(lmod_clinton_BIC),main="")
+qqline(residuals(lmod_clinton_BIC))
+
+#Histogram of Residuals
+hist(residuals(lmod_clinton_BIC),xlab="Residuals",main="Residuals Histogram for BIC Model Selection (- Kings NY)")
+```
+
+```{r figure6, echo=FALSE}
+predict_clinton_test <- predict(lmod_clinton_train, test_clinton, interval="prediction")
+predict_clinton_test <- cbind(predict_clinton_test,test_clinton$VotingPct) %>%
+  data.frame()
+ggplot(data=predict_clinton_test,mapping=aes(x=V4,y=fit,ymin=lwr,ymax=upr)) +
+  geom_point() +
+  geom_abline(intercept=0,slope=1) +
+  geom_ribbon(alpha=0.5)
+```
+
